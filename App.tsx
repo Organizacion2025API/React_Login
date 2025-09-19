@@ -1,154 +1,310 @@
-import React from 'react';
-import { NavigationContainer } from '@react-navigation/native';
-import { createStackNavigator } from '@react-navigation/stack';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { 
+  View, 
+  Text, 
+  StyleSheet, 
+  ScrollView, 
+  RefreshControl, 
+  TouchableOpacity, 
+  StatusBar 
+} from 'react-native';
 import { AuthProvider, useAuth } from './src/context/AuthContext';
 import LoginScreen from './src/screens/LoginScreen';
-import EquipoListScreen from './src/screens/EquipoListScreen';
-import EquipoFormScreen from './src/screens/EquipoFormScreen';
+import Layout from './src/components/Layout';
+import SidebarLayout from './src/components/SidebarLayout';
+import TabNavigation from './src/components/TabNavigation';
+import HistorialScreen from './src/screens/HistorialScreen';
+import ProfileScreen from './src/screens/ProfileScreen';
 
-const Stack = createStackNavigator();
+// Tipo para las vistas de navegación
+type ViewType = 'equipos' | 'historial' | 'profile';
 
-const HomeScreen = ({ navigation }: any) => {
-  const { logout, user } = useAuth();
-
+// Componente para Historial de Solicitudes
+const HistorialSolicitudesScreen = ({ onBack }: { onBack: () => void }) => {
   return (
-    <View style={styles.homeContainer}>
-      <Text style={styles.welcomeText}>¡Bienvenido {user?.name}!</Text>
-      <Text style={styles.appTitle}>Gestión de Equipos</Text>
-      
-      <TouchableOpacity
-        style={styles.homeButton}
-        onPress={() => navigation.navigate('EquipoList')}
-      >
-        <Text style={styles.homeButtonText}>📋 Ver Equipos</Text>
-      </TouchableOpacity>
-      
-      <TouchableOpacity
-        style={styles.homeButton}
-        onPress={() => navigation.navigate('EquipoForm', {})}
-      >
-        <Text style={styles.homeButtonText}>➕ Crear Equipo</Text>
-      </TouchableOpacity>
-      
-      <TouchableOpacity
-        style={[styles.homeButton, styles.logoutButton]}
-        onPress={logout}
-      >
-        <Text style={styles.homeButtonText}>🚪 Cerrar Sesión</Text>
-      </TouchableOpacity>
-      
-      <Text style={styles.demoText}>
-        📱 Demo App - Datos simulados para prueba
-      </Text>
-    </View>
+    <Layout 
+      title="Historial de Solicitudes" 
+      showBackButton={true} 
+      onBackPress={onBack}
+    >
+      <View style={styles.emptyState}>
+        <Text style={styles.emptyTitle}>📋 Historial de Solicitudes</Text>
+        <Text style={styles.emptyText}>
+          Aquí podrás ver el historial de todas las solicitudes realizadas.
+        </Text>
+        <Text style={styles.emptySubtext}>
+          Esta funcionalidad estará disponible próximamente.
+        </Text>
+      </View>
+    </Layout>
   );
 };
 
-const AppNavigator = () => {
-  const { user } = useAuth();
+// Componente principal de la aplicación
+const MainApp = () => {
+  const { user, equiposAsignados, loading, logout, cargarEquiposAsignados } = useAuth();
+  // Estado para la vista actual (equipos, historial, perfil)
+  const [currentView, setCurrentView] = useState<ViewType>('equipos');
 
+  useEffect(() => {
+    if (user) {
+      cargarEquiposAsignados();
+    }
+  }, [user]);
+
+  const onRefresh = () => {
+    cargarEquiposAsignados();
+  };
+
+  const renderEquipo = (equipo: any, index: number) => (
+    <View key={equipo.id} style={styles.equipoCard}>
+      <Text style={styles.equipoNombre}>{equipo.equipoNombre}</Text>
+      {equipo.equipoDescripcion && (
+        <Text style={styles.equipoDescripcion}>{equipo.equipoDescripcion}</Text>
+      )}
+      <View style={styles.equipoDetailsRow}>
+        <Text style={styles.equipoInfo}>Modelo: {equipo.equipoModelo || 'N/A'}</Text>
+        <Text style={styles.equipoInfo}>Serie: {equipo.equipoNserie || 'N/A'}</Text>
+      </View>
+      <Text style={styles.equipoId}>ID del Equipo: {equipo.equipoId}</Text>
+    </View>
+  );
+
+  // Si no hay usuario, mostrar login
+  if (!user) {
+    return <LoginScreen />;
+  }
+
+  // Función para renderizar el contenido según la vista
+  const renderContent = () => {
+    switch (currentView) {
+      case 'historial':
+        return (
+          <View style={styles.emptyState}>
+            <Text style={styles.emptyTitle}>📋 Historial de Solicitudes</Text>
+            <Text style={styles.emptyText}>
+              Aquí podrás ver el historial de todas las solicitudes realizadas.
+            </Text>
+            <Text style={styles.emptySubtext}>
+              Esta funcionalidad estará disponible próximamente.
+            </Text>
+          </View>
+        );
+      case 'profile':
+        return (
+          <View style={styles.emptyState}>
+            <Text style={styles.emptyTitle}>👤 Mi Perfil</Text>
+            <Text style={styles.emptyText}>
+              Información del usuario y configuraciones.
+            </Text>
+            <Text style={styles.emptySubtext}>
+              Esta funcionalidad estará disponible próximamente.
+            </Text>
+          </View>
+        );
+      case 'equipos':
+      default:
+        return (
+          /* Lista de equipos */
+          <ScrollView
+            style={styles.scrollView}
+            refreshControl={
+              <RefreshControl refreshing={loading} onRefresh={onRefresh} />
+            }
+          >
+            {equiposAsignados.length > 0 ? (
+              equiposAsignados.map(renderEquipo)
+            ) : (
+              <View style={styles.emptyState}>
+                <Text style={styles.emptyTitle}>📦 No hay equipos asignados</Text>
+                <Text style={styles.emptyText}>
+                  Actualmente no tienes equipos asignados o no se pudieron cargar.
+                </Text>
+                <Text style={styles.emptySubtext}>
+                  Desliza hacia abajo para actualizar
+                </Text>
+              </View>
+            )}
+          </ScrollView>
+        );
+    }
+  };
+
+  // Vista principal con sidebar layout
   return (
-    <NavigationContainer>
-      <Stack.Navigator
-        screenOptions={{
-          headerStyle: {
-            backgroundColor: '#007bff',
-          },
-          headerTintColor: '#fff',
-          headerTitleStyle: {
-            fontWeight: 'bold',
-          },
-        }}
-      >
-        {user ? (
-          <>
-            <Stack.Screen 
-              name="Home" 
-              component={HomeScreen} 
-              options={{ title: '🏠 Inicio' }}
-            />
-            <Stack.Screen 
-              name="EquipoList" 
-              component={EquipoListScreen}
-              options={{ title: '📋 Lista de Equipos' }}
-            />
-            <Stack.Screen 
-              name="EquipoForm" 
-              component={EquipoFormScreen}
-              options={{ title: '📝 Formulario de Equipo' }}
-            />
-          </>
-        ) : (
-          <Stack.Screen 
-            name="Login" 
-            component={LoginScreen}
-            options={{ headerShown: false }}
-          />
-        )}
-      </Stack.Navigator>
-    </NavigationContainer>
+    <SidebarLayout 
+      title="Mis Equipos Asignados"
+      currentView={currentView}
+      onNavigate={(view) => setCurrentView(view as ViewType)}
+    >
+      {renderContent()}
+    </SidebarLayout>
   );
 };
 
 export default function App() {
   return (
     <AuthProvider>
-      <AppNavigator />
+      <MainApp />
     </AuthProvider>
   );
 }
 
 const styles = StyleSheet.create({
-  homeContainer: {
+  container: {
+    flex: 1,
+    backgroundColor: '#f5f5f5',
+  },
+  header: {
+    backgroundColor: '#007bff',
+    paddingTop: 40,
+    paddingBottom: 15,
+    paddingHorizontal: 20,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#fff',
+  },
+  backButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  backText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  placeholder: {
+    width: 60,
+  },
+  logoutButton: {
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 15,
+  },
+  logoutText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  welcomeSection: {
+    backgroundColor: '#fff',
+    padding: 15,
+    marginBottom: 10,
+  },
+  welcomeText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+    textAlign: 'center',
+  },
+  navigationSection: {
+    flexDirection: 'row',
+    backgroundColor: '#fff',
+    marginHorizontal: 20,
+    marginBottom: 10,
+    borderRadius: 8,
+    overflow: 'hidden',
+    elevation: 2,
+  },
+  navButton: {
+    flex: 1,
+    paddingVertical: 12,
+    paddingHorizontal: 10,
+    backgroundColor: '#f8f9fa',
+    alignItems: 'center',
+  },
+  activeNavButton: {
+    backgroundColor: '#007bff',
+  },
+  navText: {
+    fontSize: 14,
+    color: '#666',
+    fontWeight: '500',
+  },
+  activeNavText: {
+    fontSize: 14,
+    color: '#fff',
+    fontWeight: '600',
+  },
+  contentContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f5f5f5',
-    padding: 20,
+    paddingHorizontal: 20,
   },
-  welcomeText: {
+  scrollView: {
+    flex: 1,
+    paddingHorizontal: 20,
+  },
+  equipoCard: {
+    backgroundColor: '#fff',
+    padding: 15,
+    marginBottom: 10,
+    borderRadius: 8,
+    elevation: 2,
+  },
+  equipoNombre: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 8,
+  },
+  equipoDescripcion: {
+    fontSize: 14,
+    color: '#555',
+    marginBottom: 8,
+    fontStyle: 'italic',
+  },
+  equipoDetailsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 5,
+  },
+  equipoInfo: {
+    fontSize: 13,
+    color: '#666',
+    flex: 1,
+  },
+  equipoId: {
+    fontSize: 12,
+    color: '#999',
+    textAlign: 'right',
+    marginTop: 5,
+  },
+  emptyContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 50,
+  },
+  emptyState: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 50,
+    paddingHorizontal: 20,
+  },
+  emptyTitle: {
     fontSize: 20,
     fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 15,
+    textAlign: 'center',
+  },
+  emptyText: {
+    fontSize: 16,
+    color: '#666',
     textAlign: 'center',
     marginBottom: 10,
-    color: '#333',
+    lineHeight: 22,
   },
-  appTitle: {
-    fontSize: 28,
-    fontWeight: 'bold',
+  emptySubtext: {
+    fontSize: 14,
+    color: '#999',
     textAlign: 'center',
-    marginBottom: 40,
-    color: '#007bff',
-  },
-  homeButton: {
-    backgroundColor: '#007bff',
-    paddingVertical: 15,
-    paddingHorizontal: 30,
-    borderRadius: 8,
-    marginBottom: 15,
-    minWidth: 250,
-    alignItems: 'center',
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 2,
-  },
-  logoutButton: {
-    backgroundColor: '#dc3545',
-    marginTop: 20,
-  },
-  homeButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  demoText: {
-    textAlign: 'center',
-    marginTop: 30,
-    fontSize: 12,
-    color: '#888',
-    fontStyle: 'italic',
   },
 });

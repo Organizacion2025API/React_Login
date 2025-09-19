@@ -18,13 +18,18 @@ interface Credentials {
 
 const LoginScreen: React.FC = () => {
   const [credentials, setCredentials] = useState<Credentials>({
-    user: 'admin',
-    password: 'AquiVaElHashDeLaContraseña',
+    user: '',
+    password: '',
   });
   const [loading, setLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string>('');
   const { login } = useAuth();
 
   const handleInputChange = (field: keyof Credentials, value: string) => {
+    // Limpiar error cuando el usuario empiece a escribir
+    if (error) {
+      setError('');
+    }
     setCredentials(prev => ({
       ...prev,
       [field]: value,
@@ -33,11 +38,12 @@ const LoginScreen: React.FC = () => {
 
   const handleLogin = async () => {
     if (!credentials.user || !credentials.password) {
-      Alert.alert('Error', 'Por favor ingresa usuario y contraseña');
+      setError('Por favor ingresa usuario y contraseña');
       return;
     }
 
     setLoading(true);
+    setError(''); // Limpiar error anterior
     try {
       const response = await AuthService.login({
         user: credentials.user,
@@ -45,14 +51,34 @@ const LoginScreen: React.FC = () => {
       });
 
       if (response.success && response.data) {
-        login(response.data.user);
-        Alert.alert('Éxito', 'Inicio de sesión exitoso');
+        login(response.data.user, response.data.token);
+        // No mostramos alert de éxito, el login redirige automáticamente
       } else {
-        Alert.alert('Error', response.error || 'Error al iniciar sesión');
+        // Mostrar error específico basado en la respuesta
+        if (response.error?.includes('401') || response.error?.includes('Unauthorized')) {
+          setError('Usuario o contraseña incorrectos');
+        } else if (response.error?.includes('404')) {
+          setError('Usuario no encontrado');
+        } else if (response.error?.includes('conexión') || response.error?.includes('network')) {
+          setError('Error de conexión. Verifica tu conexión a internet');
+        } else {
+          setError(response.error || 'Error al iniciar sesión. Intenta nuevamente');
+        }
       }
     } catch (error) {
       console.error('Error en login:', error);
-      Alert.alert('Error', 'Error de conexión');
+      // Manejo más específico de errores
+      if (error instanceof Error) {
+        if (error.message.includes('Network')) {
+          setError('Error de conexión. Verifica tu conexión a internet');
+        } else if (error.message.includes('401')) {
+          setError('Usuario o contraseña incorrectos');
+        } else {
+          setError('Error inesperado. Intenta nuevamente');
+        }
+      } else {
+        setError('Error de conexión. Intenta nuevamente');
+      }
     } finally {
       setLoading(false);
     }
@@ -61,8 +87,16 @@ const LoginScreen: React.FC = () => {
   return (
     <View style={styles.container}>
       <View style={styles.formContainer}>
-        <Text style={styles.title}>Gestión de Equipos</Text>
+        <Text style={styles.title}>ApexMagnament</Text>
         <Text style={styles.subtitle}>Iniciar Sesión</Text>
+        
+        {/* Mensaje de error */}
+        {error ? (
+          <View style={styles.errorContainer}>
+            <Text style={styles.errorIcon}>⚠️</Text>
+            <Text style={styles.errorText}>{error}</Text>
+          </View>
+        ) : null}
         
         <TextInput
           style={styles.input}
@@ -91,8 +125,6 @@ const LoginScreen: React.FC = () => {
             <Text style={styles.buttonText}>Ingresar</Text>
           )}
         </TouchableOpacity>
-        
-        <Text style={styles.demo}>Datos de prueba ya cargados</Text>
       </View>
     </View>
   );
@@ -155,12 +187,25 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
   },
-  demo: {
-    textAlign: 'center',
-    marginTop: 15,
-    fontSize: 12,
-    color: '#888',
-    fontStyle: 'italic',
+  errorContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#ffebee',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 15,
+    borderLeftWidth: 4,
+    borderLeftColor: '#f44336',
+  },
+  errorIcon: {
+    fontSize: 18,
+    marginRight: 8,
+  },
+  errorText: {
+    color: '#c62828',
+    fontSize: 14,
+    flex: 1,
+    fontWeight: '500',
   },
 });
 
