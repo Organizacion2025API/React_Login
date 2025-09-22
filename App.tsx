@@ -15,9 +15,10 @@ import SidebarLayout from './src/components/SidebarLayout';
 import TabNavigation from './src/components/TabNavigation';
 import HistorialScreen from './src/screens/HistorialScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
+import SolicitudScreen from './src/screens/SolicitudScreen';
 
 // Tipo para las vistas de navegación
-type ViewType = 'equipos' | 'historial' | 'profile';
+type ViewType = 'equipos' | 'historial' | 'profile' | 'solicitudes';
 
 // Componente para Historial de Solicitudes
 const HistorialSolicitudesScreen = ({ onBack }: { onBack: () => void }) => {
@@ -45,6 +46,8 @@ const MainApp = () => {
   const { user, equiposAsignados, loading, logout, cargarEquiposAsignados } = useAuth();
   // Estado para la vista actual (equipos, historial, perfil)
   const [currentView, setCurrentView] = useState<ViewType>('equipos');
+  // Estado para el equipo seleccionado para crear solicitud
+  const [equipoSeleccionado, setEquipoSeleccionado] = useState<any>(null);
 
   useEffect(() => {
     if (user) {
@@ -57,8 +60,19 @@ const MainApp = () => {
   };
 
   const renderEquipo = (equipo: any, index: number) => (
-    <View key={equipo.id} style={styles.equipoCard}>
-      <Text style={styles.equipoNombre}>{equipo.equipoNombre}</Text>
+    <TouchableOpacity 
+      key={equipo.id} 
+      style={styles.equipoCard}
+      onPress={() => {
+        // Navegar a solicitud con este equipo pre-seleccionado
+        setEquipoSeleccionado(equipo);
+        setCurrentView('solicitudes');
+      }}
+    >
+      <View style={styles.equipoHeader}>
+        <Text style={styles.equipoNombre}>{equipo.equipoNombre}</Text>
+        <Text style={styles.solicitudButton}>📝 Crear Solicitud</Text>
+      </View>
       {equipo.equipoDescripcion && (
         <Text style={styles.equipoDescripcion}>{equipo.equipoDescripcion}</Text>
       )}
@@ -67,7 +81,7 @@ const MainApp = () => {
         <Text style={styles.equipoInfo}>Serie: {equipo.equipoNserie || 'N/A'}</Text>
       </View>
       <Text style={styles.equipoId}>ID del Equipo: {equipo.equipoId}</Text>
-    </View>
+    </TouchableOpacity>
   );
 
   // Si no hay usuario, mostrar login
@@ -78,6 +92,16 @@ const MainApp = () => {
   // Función para renderizar el contenido según la vista
   const renderContent = () => {
     switch (currentView) {
+      case 'solicitudes':
+        return (
+          <SolicitudScreen 
+            onBack={() => {
+              setCurrentView('equipos');
+              setEquipoSeleccionado(null); // Limpiar selección al volver
+            }}
+            equipoPreseleccionado={equipoSeleccionado}
+          />
+        );
       case 'historial':
         return (
           <View style={styles.emptyState}>
@@ -248,12 +272,30 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     borderRadius: 8,
     elevation: 2,
+    // Agregamos efecto visual para indicar que es clickeable
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+  },
+  equipoHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  solicitudButton: {
+    fontSize: 12,
+    color: '#007bff',
+    fontWeight: '600',
+    backgroundColor: '#e3f2fd',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 4,
   },
   equipoNombre: {
     fontSize: 18,
     fontWeight: 'bold',
     color: '#333',
-    marginBottom: 8,
+    flex: 1,
   },
   equipoDescripcion: {
     fontSize: 14,
@@ -276,6 +318,18 @@ const styles = StyleSheet.create({
     color: '#999',
     textAlign: 'right',
     marginTop: 5,
+  },
+  equipoFooter: {
+    marginTop: 8,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#f0f0f0',
+    alignItems: 'center',
+  },
+  equipoFooterText: {
+    fontSize: 12,
+    color: '#007bff',
+    fontStyle: 'italic',
   },
   emptyContainer: {
     alignItems: 'center',

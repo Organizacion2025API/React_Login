@@ -265,6 +265,14 @@ class AuthService {
     this.apiClient.defaults.headers.common.Authorization = `Bearer ${token}`;
   }
 
+  getToken(): string | null {
+    const authHeader = this.apiClient.defaults.headers.common.Authorization;
+    if (authHeader && typeof authHeader === 'string' && authHeader.startsWith('Bearer ')) {
+      return authHeader.substring(7); // Remover "Bearer " del inicio
+    }
+    return null;
+  }
+
   removeToken(): void {
     delete this.apiClient.defaults.headers.common.Authorization;
   }
