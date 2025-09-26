@@ -9,7 +9,12 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { useAuth } from '../context/AuthContext';
-import SolicitudService, { SolicitudService as SolicitudServiceClass, SolicitudResponse } from '../services/SolicitudService';
+import SolicitudService, { 
+  SolicitudService as SolicitudServiceClass, 
+  SolicitudResponse,
+  PaginatedResponse,
+  PaginacionParams 
+} from '../services/SolicitudService';
 
 interface HistorialScreenProps {
   onBack: () => void;
@@ -19,37 +24,87 @@ const HistorialScreen: React.FC<HistorialScreenProps> = ({ onBack }) => {
   const { user } = useAuth();
   const [solicitudes, setSolicitudes] = useState<SolicitudResponse[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
+  const [loadingMore, setLoadingMore] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
+  
+  // Estados de paginación
+  const [currentPage, setCurrentPage] = useState<number>(0);
+  const [totalPages, setTotalPages] = useState<number>(0);
+  const [totalElements, setTotalElements] = useState<number>(0);
+  const [pageSize] = useState<number>(10);
+  const [hasMore, setHasMore] = useState<boolean>(true);
 
   useEffect(() => {
-    cargarSolicitudesPropias();
+    cargarSolicitudesPropias(0, false);
   }, []);
 
-  const cargarSolicitudesPropias = async () => {
-    setLoading(true);
+  const cargarSolicitudesPropias = async (page: number = 0, append: boolean = false) => {
+    if (append) {
+      setLoadingMore(true);
+    } else {
+      setLoading(true);
+      setSolicitudes([]);
+    }
     setError('');
     
     try {
-      const response = await SolicitudService.obtenerSolicitudesPropias();
+      const params: PaginacionParams = {
+        page,
+        size: pageSize,
+        sortBy: 'fechaRegistro',
+        sortDir: 'desc'
+      };
+
+      const response = await SolicitudService.obtenerSolicitudesPropias(params);
       
       if (response.success && response.data) {
-        setSolicitudes(response.data);
-        console.log('✅ HistorialScreen - Solicitudes cargadas:', response.data);
+        const paginatedData = response.data;
+        
+        if (append) {
+          setSolicitudes(prevSolicitudes => [...prevSolicitudes, ...paginatedData.content]);
+        } else {
+          setSolicitudes(paginatedData.content);
+        }
+        
+        setCurrentPage(paginatedData.number);
+        setTotalPages(paginatedData.totalPages);
+        setTotalElements(paginatedData.totalElements);
+        setHasMore(!paginatedData.last);
+        
+        console.log('✅ HistorialScreen - Solicitudes cargadas:', {
+          page: paginatedData.number,
+          totalPages: paginatedData.totalPages,
+          totalElements: paginatedData.totalElements,
+          content: paginatedData.content.length
+        });
       } else {
         setError(response.error || 'Error al cargar el historial de solicitudes');
-        setSolicitudes([]);
+        if (!append) setSolicitudes([]);
       }
     } catch (error) {
       console.error('❌ HistorialScreen - Error cargando solicitudes:', error);
       setError('Error inesperado al cargar las solicitudes');
-      setSolicitudes([]);
+      if (!append) setSolicitudes([]);
     } finally {
       setLoading(false);
+      setLoadingMore(false);
     }
   };
 
   const onRefresh = () => {
-    cargarSolicitudesPropias();
+    cargarSolicitudesPropias(0, false);
+  };
+
+  const cargarMasSolicitudes = () => {
+    if (hasMore && !loadingMore) {
+      cargarSolicitudesPropias(currentPage + 1, true);
+    }
+  };
+
+  const irAPagina = (page: number) => {
+    if (page >= 0 && page < totalPages && page !== currentPage) {
+      cargarSolicitudesPropias(page, false);
+    }
   };
 
   const formatearFecha = (fechaString: string): string => {
@@ -102,7 +157,12 @@ const HistorialScreen: React.FC<HistorialScreenProps> = ({ onBack }) => {
         <TouchableOpacity onPress={onBack} style={styles.backButton}>
           <Text style={styles.backText}>← Volver</Text>
         </TouchableOpacity>
-        <Text style={styles.title}>Mi Historial</Text>
+        <View style={styles.titleContainer}>
+          <Text style={styles.title}>Mi Historial</Text>
+          {totalPages > 1 && (
+            <Text style={styles.titleSubtext}>Página {currentPage + 1} de {totalPages}</Text>
+          )}
+        </View>
         <View style={styles.placeholder} />
       </View>
 
@@ -117,6 +177,18 @@ const HistorialScreen: React.FC<HistorialScreenProps> = ({ onBack }) => {
           <View style={styles.errorContainer}>
             <Text style={styles.errorIcon}>⚠️</Text>
             <Text style={styles.errorText}>{error}</Text>
+          </View>
+        )}
+
+        {/* Información de paginación */}
+        {totalElements > 0 && (
+          <View style={styles.paginationInfo}>
+            <Text style={styles.paginationText}>
+              📊 {totalElements} solicitude{totalElements !== 1 ? 's' : ''} encontrada{totalElements !== 1 ? 's' : ''}
+            </Text>
+            <Text style={styles.paginationText}>
+              📄 Página {currentPage + 1} de {totalPages}
+            </Text>
           </View>
         )}
 
@@ -135,9 +207,9 @@ const HistorialScreen: React.FC<HistorialScreenProps> = ({ onBack }) => {
           ) : solicitudes.length > 0 ? (
             <>
               <View style={styles.statsContainer}>
-                <Text style={styles.statsTitle}>📊 Resumen</Text>
+                <Text style={styles.statsTitle}>📊 Resumen de esta página</Text>
                 <Text style={styles.statsText}>
-                  Total de solicitudes: {solicitudes.length}
+                  Mostrando: {solicitudes.length} de {totalElements} solicitudes
                 </Text>
                 <Text style={styles.statsText}>
                   Pendientes: {solicitudes.filter(s => s.estado === 1).length}
@@ -148,9 +220,34 @@ const HistorialScreen: React.FC<HistorialScreenProps> = ({ onBack }) => {
                 <Text style={styles.statsText}>
                   Resueltas: {solicitudes.filter(s => s.estado === 3).length}
                 </Text>
+                {totalPages > 1 && (
+                  <Text style={styles.statsText}>
+                    📄 Página {currentPage + 1} de {totalPages}
+                  </Text>
+                )}
               </View>
               
               {solicitudes.map(renderSolicitud)}
+              
+              {/* Botón para cargar más */}
+              {hasMore && (
+                <View style={styles.loadMoreContainer}>
+                  <TouchableOpacity 
+                    style={styles.loadMoreButton}
+                    onPress={cargarMasSolicitudes}
+                    disabled={loadingMore}
+                  >
+                    {loadingMore ? (
+                      <View style={styles.loadingContainer}>
+                        <ActivityIndicator size="small" color="#007bff" />
+                        <Text style={styles.loadMoreText}>Cargando más...</Text>
+                      </View>
+                    ) : (
+                      <Text style={styles.loadMoreText}>📄 Cargar más solicitudes</Text>
+                    )}
+                  </TouchableOpacity>
+                </View>
+              )}
             </>
           ) : (
             <View style={styles.emptyState}>
@@ -164,6 +261,57 @@ const HistorialScreen: React.FC<HistorialScreenProps> = ({ onBack }) => {
             </View>
           )}
         </ScrollView>
+        
+        {/* Controles de paginación */}
+        {totalPages > 1 && (
+          <View style={styles.paginationControls}>
+            <TouchableOpacity 
+              style={[styles.pageButton, currentPage === 0 && styles.pageButtonDisabled]}
+              onPress={() => irAPagina(0)}
+              disabled={currentPage === 0}
+            >
+              <Text style={[styles.pageButtonText, currentPage === 0 && styles.pageButtonTextDisabled]}>
+                ⏮️ Primera
+              </Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={[styles.pageButton, currentPage === 0 && styles.pageButtonDisabled]}
+              onPress={() => irAPagina(currentPage - 1)}
+              disabled={currentPage === 0}
+            >
+              <Text style={[styles.pageButtonText, currentPage === 0 && styles.pageButtonTextDisabled]}>
+                ⬅️ Anterior
+              </Text>
+            </TouchableOpacity>
+            
+            <View style={styles.pageIndicator}>
+              <Text style={styles.pageIndicatorText}>
+                {currentPage + 1} / {totalPages}
+              </Text>
+            </View>
+            
+            <TouchableOpacity 
+              style={[styles.pageButton, currentPage >= totalPages - 1 && styles.pageButtonDisabled]}
+              onPress={() => irAPagina(currentPage + 1)}
+              disabled={currentPage >= totalPages - 1}
+            >
+              <Text style={[styles.pageButtonText, currentPage >= totalPages - 1 && styles.pageButtonTextDisabled]}>
+                Siguiente ➡️
+              </Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={[styles.pageButton, currentPage >= totalPages - 1 && styles.pageButtonDisabled]}
+              onPress={() => irAPagina(totalPages - 1)}
+              disabled={currentPage >= totalPages - 1}
+            >
+              <Text style={[styles.pageButtonText, currentPage >= totalPages - 1 && styles.pageButtonTextDisabled]}>
+                Última ⏭️
+              </Text>
+            </TouchableOpacity>
+          </View>
+        )}
       </View>
     </View>
   );
@@ -197,8 +345,17 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: 'bold',
     color: '#fff',
-    flex: 1,
     textAlign: 'center',
+  },
+  titleContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  titleSubtext: {
+    fontSize: 12,
+    color: '#e3f2fd',
+    marginTop: 2,
   },
   placeholder: {
     width: 80,
@@ -359,6 +516,87 @@ const styles = StyleSheet.create({
     color: '#999',
     textAlign: 'center',
     lineHeight: 20,
+  },
+  // Estilos de paginación
+  paginationInfo: {
+    backgroundColor: '#f8f9fa',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 15,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    borderLeftWidth: 3,
+    borderLeftColor: '#007bff',
+  },
+  paginationText: {
+    fontSize: 12,
+    color: '#495057',
+    fontWeight: '500',
+  },
+  loadMoreContainer: {
+    paddingVertical: 20,
+    alignItems: 'center',
+  },
+  loadMoreButton: {
+    backgroundColor: '#f8f9fa',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#dee2e6',
+    minWidth: 200,
+    alignItems: 'center',
+  },
+  loadMoreText: {
+    color: '#007bff',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  paginationControls: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 15,
+    backgroundColor: '#fff',
+    borderTopWidth: 1,
+    borderTopColor: '#e9ecef',
+    gap: 5,
+  },
+  pageButton: {
+    backgroundColor: '#007bff',
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    borderRadius: 6,
+    minWidth: 60,
+    alignItems: 'center',
+  },
+  pageButtonDisabled: {
+    backgroundColor: '#e9ecef',
+  },
+  pageButtonText: {
+    color: '#fff',
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  pageButtonTextDisabled: {
+    color: '#6c757d',
+  },
+  pageIndicator: {
+    backgroundColor: '#f8f9fa',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#dee2e6',
+    minWidth: 60,
+    alignItems: 'center',
+  },
+  pageIndicatorText: {
+    color: '#495057',
+    fontSize: 12,
+    fontWeight: 'bold',
   },
 });
 

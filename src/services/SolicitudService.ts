@@ -17,6 +17,24 @@ export interface SolicitudResponse {
   personalId?: string;
 }
 
+export interface PaginacionParams {
+  page?: number;
+  size?: number;
+  sortBy?: string;
+  sortDir?: 'asc' | 'desc';
+}
+
+export interface PaginatedResponse<T> {
+  content: T[];
+  totalElements: number;
+  totalPages: number;
+  size: number;
+  number: number;
+  first: boolean;
+  last: boolean;
+  empty: boolean;
+}
+
 interface ApiResponse<T> {
   success: boolean;
   data?: T;
@@ -93,18 +111,61 @@ class SolicitudService {
     }
   }
 
-  async obtenerSolicitudesPropias(): Promise<ApiResponse<SolicitudResponse[]>> {
+  async obtenerSolicitudesPropias(params?: PaginacionParams): Promise<ApiResponse<PaginatedResponse<SolicitudResponse>>> {
     try {
-      console.log('📋 SolicitudService - Obteniendo solicitudes propias...');
+      const queryParams = new URLSearchParams();
       
-      const response = await this.apiClient.get('/solicitudes/mias');
+      if (params?.page !== undefined) queryParams.set('page', params.page.toString());
+      if (params?.size !== undefined) queryParams.set('size', params.size.toString());
+      if (params?.sortBy) queryParams.set('sort', `${params.sortBy},${params.sortDir || 'desc'}`);
+      
+      const url = `/solicitudes/mias${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+      
+      console.log('📋 SolicitudService - Obteniendo solicitudes propias:', url);
+      
+      const response = await this.apiClient.get(url);
       
       console.log('✅ SolicitudService - Solicitudes obtenidas:', response.data);
       
-      return {
-        success: true,
-        data: response.data || []
-      };
+      // Verificar si la respuesta es paginada o un simple array
+      if (Array.isArray(response.data)) {
+        // Respuesta simple (array), crear estructura paginada
+        const data: SolicitudResponse[] = response.data;
+        const page = params?.page || 0;
+        const size = params?.size || 10;
+        const start = page * size;
+        const end = start + size;
+        const paginatedContent = data.slice(start, end);
+        
+        return {
+          success: true,
+          data: {
+            content: paginatedContent,
+            totalElements: data.length,
+            totalPages: Math.ceil(data.length / size),
+            size: size,
+            number: page,
+            first: page === 0,
+            last: end >= data.length,
+            empty: data.length === 0
+          }
+        };
+      } else {
+        // Respuesta ya paginada
+        return {
+          success: true,
+          data: response.data || {
+            content: [],
+            totalElements: 0,
+            totalPages: 0,
+            size: params?.size || 10,
+            number: params?.page || 0,
+            first: true,
+            last: true,
+            empty: true
+          }
+        };
+      }
       
     } catch (error: any) {
       console.error('❌ SolicitudService - Error obteniendo solicitudes:', error);
