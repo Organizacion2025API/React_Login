@@ -69,7 +69,6 @@ const SidebarLayout: React.FC<SidebarLayoutProps> = ({
   const menuItems = [
     { id: 'equipos', title: '🎯 Mis Equipos', icon: '💻' },
     { id: 'historial', title: '📋 Historial', icon: '📄' },
-    { id: 'profile', title: '👤 Mi Perfil', icon: '⚙️' },
   ];
 
   const Content = scrollable ? ScrollView : View;
@@ -172,23 +171,6 @@ const SidebarLayout: React.FC<SidebarLayoutProps> = ({
               ))}
 
               <View style={styles.separator} />
-              
-              <Text style={styles.sectionTitle}>Configuración</Text>
-              
-              <TouchableOpacity style={styles.menuItem}>
-                <Text style={styles.menuItemIcon}>🔔</Text>
-                <Text style={styles.menuItemText}>Notificaciones</Text>
-              </TouchableOpacity>
-              
-              <TouchableOpacity style={styles.menuItem}>
-                <Text style={styles.menuItemIcon}>❓</Text>
-                <Text style={styles.menuItemText}>Ayuda</Text>
-              </TouchableOpacity>
-              
-              <TouchableOpacity style={styles.menuItem}>
-                <Text style={styles.menuItemIcon}>ℹ️</Text>
-                <Text style={styles.menuItemText}>Acerca de</Text>
-              </TouchableOpacity>
             </ScrollView>
 
             {/* Logout Button */}

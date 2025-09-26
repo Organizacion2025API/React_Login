@@ -1,19 +1,20 @@
 import axios, { AxiosInstance } from 'axios';
-import AuthService from './AuthService';
 
-const API_BASE_URL = 'https://gateway-api-dfbk.onrender.com/ApiAdministracion';
+const API_BASE_URL = 'https://gateway-api-dfbk.onrender.com/ApiAdministracion/api';
 
-interface SolicitudRequest {
+export interface SolicitudRequest {
   descripcion: string;
   asignacionEquipoId: number;
 }
 
-interface SolicitudResponse {
-  id: number;
+export interface SolicitudResponse {
+  id?: number;
   descripcion: string;
+  estado?: number;
+  fechaRegistro?: string;
+  fechaCreacion?: string;
   asignacionEquipoId: number;
-  fechaCreacion: string;
-  estado: string;
+  personalId?: string;
 }
 
 interface ApiResponse<T> {
@@ -31,155 +32,134 @@ class SolicitudService {
       headers: {
         'Content-Type': 'application/json',
       },
-      timeout: 10000, // 10 segundos timeout
+      timeout: 10000,
     });
-
-    // Interceptor para agregar el token JWT a todas las peticiones
-    this.apiClient.interceptors.request.use(
-      (config) => {
-        const token = AuthService.getToken();
-        if (token) {
-          config.headers.Authorization = `Bearer ${token}`;
-        }
-        return config;
-      },
-      (error) => {
-        return Promise.reject(error);
-      }
-    );
   }
 
-  async crearSolicitud(solicitud: SolicitudRequest): Promise<ApiResponse<SolicitudResponse>> {
+  setToken(token: string): void {
+    if (token) {
+      this.apiClient.defaults.headers.common.Authorization = `Bearer ${token}`;
+    } else {
+      delete this.apiClient.defaults.headers.common.Authorization;
+    }
+  }
+
+  removeToken(): void {
+    delete this.apiClient.defaults.headers.common.Authorization;
+  }
+
+  async crearSolicitud(solicitudData: SolicitudRequest): Promise<ApiResponse<SolicitudResponse>> {
     try {
-      console.log('🔍 SolicitudService - Enviando solicitud:', solicitud);
+      console.log('🔧 SolicitudService - Creando solicitud:', solicitudData);
       
-      const response = await this.apiClient.post('/api/solicitudes', solicitud);
+      const response = await this.apiClient.post('/solicitudes', solicitudData);
       
-      if (response.status === 200 || response.status === 201) {
-        console.log('✅ SolicitudService - Solicitud creada exitosamente:', response.data);
-        return {
-          success: true,
-          data: response.data
-        };
-      } else {
-        console.error('❌ SolicitudService - Error en respuesta:', response.status);
-        return {
-          success: false,
-          error: `Error del servidor (${response.status})`
-        };
-      }
+      console.log('✅ SolicitudService - Respuesta exitosa:', response.data);
+      
+      return {
+        success: true,
+        data: response.data
+      };
+      
     } catch (error: any) {
-      console.error('❌ SolicitudService - Error al crear solicitud:', error);
+      console.error('❌ SolicitudService - Error creando solicitud:', error);
       
-      if (error.response) {
-        // Error de respuesta del servidor
-        const status = error.response.status;
-        const serverMessage = error.response.data?.message;
-        
-        switch (status) {
-          case 400:
-            return {
-              success: false,
-              error: 'Datos de solicitud inválidos. Verifica la información'
-            };
-          case 401:
-            return {
-              success: false,
-              error: 'No autorizado. Por favor inicia sesión nuevamente'
-            };
-          case 403:
-            return {
-              success: false,
-              error: 'No tienes permisos para crear solicitudes'
-            };
-          case 404:
-            return {
-              success: false,
-              error: 'Equipo no encontrado o no asignado'
-            };
-          case 500:
-            return {
-              success: false,
-              error: 'Error interno del servidor. Intenta más tarde'
-            };
-          default:
-            return {
-              success: false,
-              error: serverMessage || `Error del servidor (${status})`
-            };
-        }
-      } else if (error.request) {
-        // Error de red o timeout
-        if (error.code === 'ECONNABORTED') {
-          return {
-            success: false,
-            error: 'Tiempo de espera agotado. Verifica tu conexión'
-          };
-        } else {
-          return {
-            success: false,
-            error: 'Error de conexión. Verifica tu internet'
-          };
-        }
-      } else {
-        // Otro error
+      if (error.response?.status === 401) {
         return {
           success: false,
-          error: 'Error inesperado. Intenta nuevamente'
+          error: 'No autorizado. Por favor, inicia sesión nuevamente.'
+        };
+      } else if (error.response?.status === 400) {
+        return {
+          success: false,
+          error: error.response.data?.message || 'Datos inválidos para la solicitud'
+        };
+      } else if (error.response?.status === 500) {
+        return {
+          success: false,
+          error: 'Error interno del servidor'
+        };
+      } else if (error.code === 'NETWORK_ERROR' || error.message.includes('Network Error')) {
+        return {
+          success: false,
+          error: 'Error de conexión. Verifica tu conexión a internet.'
+        };
+      } else {
+        return {
+          success: false,
+          error: error.response?.data?.message || 'Error inesperado al crear la solicitud'
         };
       }
     }
   }
 
-  async obtenerSolicitudes(): Promise<ApiResponse<SolicitudResponse[]>> {
+  async obtenerSolicitudesPropias(): Promise<ApiResponse<SolicitudResponse[]>> {
     try {
-      console.log('🔍 SolicitudService - Obteniendo solicitudes del usuario');
+      console.log('📋 SolicitudService - Obteniendo solicitudes propias...');
       
-      const response = await this.apiClient.get('/api/solicitudes');
+      const response = await this.apiClient.get('/solicitudes/mias');
       
-      if (response.status === 200) {
-        console.log('✅ SolicitudService - Solicitudes obtenidas:', response.data);
-        return {
-          success: true,
-          data: response.data
-        };
-      } else {
-        return {
-          success: false,
-          error: `Error del servidor (${response.status})`
-        };
-      }
+      console.log('✅ SolicitudService - Solicitudes obtenidas:', response.data);
+      
+      return {
+        success: true,
+        data: response.data || []
+      };
+      
     } catch (error: any) {
-      console.error('❌ SolicitudService - Error al obtener solicitudes:', error);
+      console.error('❌ SolicitudService - Error obteniendo solicitudes:', error);
       
-      if (error.response) {
-        const status = error.response.status;
-        switch (status) {
-          case 401:
-            return {
-              success: false,
-              error: 'No autorizado. Inicia sesión nuevamente'
-            };
-          case 404:
-            return {
-              success: false,
-              error: 'No se encontraron solicitudes'
-            };
-          default:
-            return {
-              success: false,
-              error: 'Error al cargar solicitudes'
-            };
-        }
+      if (error.response?.status === 401) {
+        return {
+          success: false,
+          error: 'No autorizado. Por favor, inicia sesión nuevamente.'
+        };
+      } else if (error.response?.status === 404) {
+        return {
+          success: false,
+          error: 'No se encontraron solicitudes'
+        };
+      } else if (error.response?.status === 500) {
+        return {
+          success: false,
+          error: 'Error interno del servidor'
+        };
+      } else if (error.code === 'NETWORK_ERROR' || error.message.includes('Network Error')) {
+        return {
+          success: false,
+          error: 'Error de conexión. Verifica tu conexión a internet.'
+        };
       } else {
         return {
           success: false,
-          error: 'Error de conexión'
+          error: error.response?.data?.message || 'Error inesperado al obtener las solicitudes'
         };
       }
+    }
+  }
+
+  // Funciones helper para mapear estados
+  static getEstadoNombre(estado: number): string {
+    switch (estado) {
+      case 1: return 'Pendiente';
+      case 2: return 'En Proceso';
+      case 3: return 'Resuelto';
+      case 4: return 'Cerrado';
+      default: return 'Desconocido';
+    }
+  }
+
+  static getEstadoColor(estado: number): string {
+    switch (estado) {
+      case 1: return '#ff9800'; // Naranja para pendiente
+      case 2: return '#2196f3'; // Azul para en proceso
+      case 3: return '#4caf50'; // Verde para resuelto
+      case 4: return '#9e9e9e'; // Gris para cerrado
+      default: return '#757575'; // Gris por defecto
     }
   }
 }
 
+// Exportar tanto la clase como la instancia
+export { SolicitudService };
 export default new SolicitudService();
-export type { SolicitudRequest, SolicitudResponse };

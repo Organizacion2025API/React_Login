@@ -1,5 +1,6 @@
 import React, { createContext, useState, useContext, ReactNode } from 'react';
 import AsignacionService, { AsignacionEquipoDTO } from '../services/AsignacionService';
+import SolicitudService from '../services/SolicitudService';
 
 interface User {
   id: number;
@@ -34,6 +35,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setUser(userData);
     if (token) {
       AsignacionService.setToken(token);
+      SolicitudService.setToken(token);
       console.log('🔍 AuthContext - Token configurado, cargando equipos para usuario ID:', userData.id);
       cargarEquiposAsignados(userData.id);
     }
@@ -43,6 +45,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setUser(null);
     setEquiposAsignados([]);
     AsignacionService.removeToken();
+    SolicitudService.removeToken();
   };
 
   const cargarEquiposAsignados = async (userId?: number) => {

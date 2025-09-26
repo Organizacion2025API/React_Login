@@ -12,9 +12,7 @@ import { AuthProvider, useAuth } from './src/context/AuthContext';
 import LoginScreen from './src/screens/LoginScreen';
 import Layout from './src/components/Layout';
 import SidebarLayout from './src/components/SidebarLayout';
-import TabNavigation from './src/components/TabNavigation';
 import HistorialScreen from './src/screens/HistorialScreen';
-import ProfileScreen from './src/screens/ProfileScreen';
 import SolicitudScreen from './src/screens/SolicitudScreen';
 
 // Tipo para las vistas de navegación
@@ -92,6 +90,10 @@ const MainApp = () => {
   // Función para renderizar el contenido según la vista
   const renderContent = () => {
     switch (currentView) {
+      case 'historial':
+        return (
+          <HistorialScreen onBack={() => setCurrentView('equipos')} />
+        );
       case 'solicitudes':
         return (
           <SolicitudScreen 

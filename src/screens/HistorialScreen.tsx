@@ -1,206 +1,311 @@
-import React, { useState } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  FlatList,
+import React, { useState, useEffect } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
   TouchableOpacity,
-  TextInput,
-  Alert
+  RefreshControl,
+  ActivityIndicator,
 } from 'react-native';
-import Layout from '../components/Layout';
-import TabNavigation from '../components/TabNavigation';
+import { useAuth } from '../context/AuthContext';
+import SolicitudService, { SolicitudService as SolicitudServiceClass, SolicitudResponse } from '../services/SolicitudService';
 
-interface HistorialItem {
-  id: string;
-  tipo: 'solicitud' | 'reparacion' | 'mantenimiento';
-  descripcion: string;
-  fecha: string;
-  estado: 'pendiente' | 'en_proceso' | 'completado' | 'cancelado';
+interface HistorialScreenProps {
+  onBack: () => void;
 }
 
-const HistorialScreen = ({ onBack }: { onBack?: () => void }) => {
-  const [activeTab, setActiveTab] = useState('todos');
-  const [searchText, setSearchText] = useState('');
+const HistorialScreen: React.FC<HistorialScreenProps> = ({ onBack }) => {
+  const { user } = useAuth();
+  const [solicitudes, setSolicitudes] = useState<SolicitudResponse[]>([]);
+  const [loading, setLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string>('');
 
-  // Datos de ejemplo
-  const historialData: HistorialItem[] = [
-    {
-      id: '1',
-      tipo: 'solicitud',
-      descripcion: 'Solicitud de nuevo equipo de cómputo',
-      fecha: '2024-01-15',
-      estado: 'pendiente'
-    },
-    {
-      id: '2',
-      tipo: 'reparacion',
-      descripcion: 'Reparación de impresora HP LaserJet',
-      fecha: '2024-01-10',
-      estado: 'completado'
-    },
-    {
-      id: '3',
-      tipo: 'mantenimiento',
-      descripcion: 'Mantenimiento preventivo servidor',
-      fecha: '2024-01-08',
-      estado: 'en_proceso'
-    }
-  ];
+  useEffect(() => {
+    cargarSolicitudesPropias();
+  }, []);
 
-  const filteredData = historialData.filter(item => {
-    const matchesSearch = item.descripcion.toLowerCase().includes(searchText.toLowerCase());
-    const matchesTab = activeTab === 'todos' || item.tipo === activeTab;
-    return matchesSearch && matchesTab;
-  });
-
-  const getEstadoColor = (estado: string) => {
-    switch (estado) {
-      case 'completado': return '#28a745';
-      case 'en_proceso': return '#007bff';
-      case 'pendiente': return '#ffc107';
-      case 'cancelado': return '#dc3545';
-      default: return '#6c757d';
+  const cargarSolicitudesPropias = async () => {
+    setLoading(true);
+    setError('');
+    
+    try {
+      const response = await SolicitudService.obtenerSolicitudesPropias();
+      
+      if (response.success && response.data) {
+        setSolicitudes(response.data);
+        console.log('✅ HistorialScreen - Solicitudes cargadas:', response.data);
+      } else {
+        setError(response.error || 'Error al cargar el historial de solicitudes');
+        setSolicitudes([]);
+      }
+    } catch (error) {
+      console.error('❌ HistorialScreen - Error cargando solicitudes:', error);
+      setError('Error inesperado al cargar las solicitudes');
+      setSolicitudes([]);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const getEstadoText = (estado: string) => {
-    switch (estado) {
-      case 'completado': return 'Completado';
-      case 'en_proceso': return 'En Proceso';
-      case 'pendiente': return 'Pendiente';
-      case 'cancelado': return 'Cancelado';
-      default: return 'Desconocido';
+  const onRefresh = () => {
+    cargarSolicitudesPropias();
+  };
+
+  const formatearFecha = (fechaString: string): string => {
+    try {
+      const fecha = new Date(fechaString);
+      return fecha.toLocaleDateString('es-ES', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    } catch (error) {
+      return 'Fecha inválida';
     }
   };
 
-  const getTipoIcon = (tipo: string) => {
-    switch (tipo) {
-      case 'solicitud': return '📝';
-      case 'reparacion': return '🔧';
-      case 'mantenimiento': return '⚙️';
-      default: return '📋';
-    }
-  };
+  const renderSolicitud = (solicitud: SolicitudResponse) => {
+    const estadoColor = SolicitudServiceClass.getEstadoColor(solicitud.estado || 1);
+    const estadoNombre = SolicitudServiceClass.getEstadoNombre(solicitud.estado || 1);
 
-  const renderHistorialItem = ({ item }: { item: HistorialItem }) => (
-    <TouchableOpacity 
-      style={styles.historialCard}
-      onPress={() => Alert.alert('Detalle', item.descripcion)}
-    >
-      <View style={styles.cardHeader}>
-        <View style={styles.tipoContainer}>
-          <Text style={styles.tipoIcon}>{getTipoIcon(item.tipo)}</Text>
-          <Text style={styles.tipoText}>{item.tipo.charAt(0).toUpperCase() + item.tipo.slice(1)}</Text>
+    return (
+      <View key={solicitud.id} style={styles.solicitudCard}>
+        <View style={styles.solicitudHeader}>
+          <Text style={styles.solicitudId}>Solicitud #{solicitud.id}</Text>
+          <View style={[styles.estadoBadge, { backgroundColor: estadoColor }]}>
+            <Text style={styles.estadoText}>{estadoNombre}</Text>
+          </View>
         </View>
-        <View style={[styles.estadoBadge, { backgroundColor: getEstadoColor(item.estado) }]}>
-          <Text style={styles.estadoText}>{getEstadoText(item.estado)}</Text>
+        
+        <Text style={styles.solicitudDescripcion} numberOfLines={3}>
+          {solicitud.descripcion}
+        </Text>
+        
+        <View style={styles.solicitudFooter}>
+          <Text style={styles.solicitudInfo}>
+            📅 {formatearFecha(solicitud.fechaRegistro || solicitud.fechaCreacion || '')}
+          </Text>
+          <Text style={styles.solicitudInfo}>
+            🔧 Equipo ID: {solicitud.asignacionEquipoId}
+          </Text>
         </View>
       </View>
-      
-      <Text style={styles.descripcion}>{item.descripcion}</Text>
-      <Text style={styles.fecha}>📅 {item.fecha}</Text>
-    </TouchableOpacity>
-  );
+    );
+  };
 
   return (
-    <Layout 
-      title="Historial de Solicitudes" 
-      showBackButton={!!onBack} 
-      onBackPress={onBack}
-    >
-      {/* Navegación por tabs */}
-      <TabNavigation
-        tabs={[
-          { id: 'todos', title: '📋 Todos' },
-          { id: 'solicitud', title: '📝 Solicitudes' },
-          { id: 'reparacion', title: '🔧 Reparaciones' },
-          { id: 'mantenimiento', title: '⚙️ Mantenimiento' }
-        ]}
-        activeTab={activeTab}
-        onTabPress={setActiveTab}
-      />
-
-      {/* Barra de búsqueda */}
-      <View style={styles.searchContainer}>
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Buscar en historial..."
-          value={searchText}
-          onChangeText={setSearchText}
-        />
+    <View style={styles.container}>
+      <View style={styles.header}>
+        <TouchableOpacity onPress={onBack} style={styles.backButton}>
+          <Text style={styles.backText}>← Volver</Text>
+        </TouchableOpacity>
+        <Text style={styles.title}>Mi Historial</Text>
+        <View style={styles.placeholder} />
       </View>
 
-      {/* Lista de historial */}
-      <FlatList
-        data={filteredData}
-        renderItem={renderHistorialItem}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.listContainer}
-        ListEmptyComponent={() => (
-          <View style={styles.emptyState}>
-            <Text style={styles.emptyTitle}>📄 Sin resultados</Text>
-            <Text style={styles.emptyText}>
-              {searchText ? 
-                'No se encontraron elementos que coincidan con tu búsqueda.' :
-                'No hay elementos en esta categoría.'
-              }
-            </Text>
+      <View style={styles.content}>
+        <View style={styles.userInfo}>
+          <Text style={styles.userInfoTitle}>Historial de solicitudes de:</Text>
+          <Text style={styles.userName}>{user?.name || 'Usuario'}</Text>
+          <Text style={styles.userRole}>{user?.role || 'Empleado'}</Text>
+        </View>
+
+        {error && (
+          <View style={styles.errorContainer}>
+            <Text style={styles.errorIcon}>⚠️</Text>
+            <Text style={styles.errorText}>{error}</Text>
           </View>
         )}
-      />
-    </Layout>
+
+        <ScrollView
+          style={styles.scrollView}
+          refreshControl={
+            <RefreshControl refreshing={loading} onRefresh={onRefresh} />
+          }
+          showsVerticalScrollIndicator={false}
+        >
+          {loading && solicitudes.length === 0 ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color="#007bff" />
+              <Text style={styles.loadingText}>Cargando historial...</Text>
+            </View>
+          ) : solicitudes.length > 0 ? (
+            <>
+              <View style={styles.statsContainer}>
+                <Text style={styles.statsTitle}>📊 Resumen</Text>
+                <Text style={styles.statsText}>
+                  Total de solicitudes: {solicitudes.length}
+                </Text>
+                <Text style={styles.statsText}>
+                  Pendientes: {solicitudes.filter(s => s.estado === 1).length}
+                </Text>
+                <Text style={styles.statsText}>
+                  En proceso: {solicitudes.filter(s => s.estado === 2).length}
+                </Text>
+                <Text style={styles.statsText}>
+                  Resueltas: {solicitudes.filter(s => s.estado === 3).length}
+                </Text>
+              </View>
+              
+              {solicitudes.map(renderSolicitud)}
+            </>
+          ) : (
+            <View style={styles.emptyState}>
+              <Text style={styles.emptyTitle}>📝 Sin Solicitudes</Text>
+              <Text style={styles.emptyText}>
+                Aún no has creado ninguna solicitud de soporte.
+              </Text>
+              <Text style={styles.emptySubtext}>
+                Ve a "Mis Equipos" y toca cualquier equipo para crear tu primera solicitud.
+              </Text>
+            </View>
+          )}
+        </ScrollView>
+      </View>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
-  searchContainer: {
-    paddingHorizontal: 20,
-    marginBottom: 15,
+  container: {
+    flex: 1,
+    backgroundColor: '#f5f5f5',
   },
-  searchInput: {
-    backgroundColor: '#fff',
-    paddingHorizontal: 15,
-    paddingVertical: 12,
-    borderRadius: 8,
+  header: {
+    backgroundColor: '#007bff',
+    paddingTop: 40,
+    paddingBottom: 15,
+    paddingHorizontal: 20,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  backButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    minWidth: 80,
+  },
+  backText: {
+    color: '#fff',
     fontSize: 16,
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
+    fontWeight: '600',
   },
-  listContainer: {
-    paddingHorizontal: 20,
-    paddingBottom: 20,
+  title: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#fff',
+    flex: 1,
+    textAlign: 'center',
   },
-  historialCard: {
+  placeholder: {
+    width: 80,
+  },
+  content: {
+    flex: 1,
+    padding: 20,
+  },
+  userInfo: {
     backgroundColor: '#fff',
     padding: 15,
-    marginBottom: 12,
     borderRadius: 8,
+    marginBottom: 20,
     elevation: 2,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.2,
     shadowRadius: 2,
   },
-  cardHeader: {
+  userInfoTitle: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 5,
+  },
+  userName: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  userRole: {
+    fontSize: 14,
+    color: '#007bff',
+    marginTop: 2,
+  },
+  errorContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#ffebee',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 15,
+    borderLeftWidth: 4,
+    borderLeftColor: '#f44336',
+  },
+  errorIcon: {
+    fontSize: 18,
+    marginRight: 8,
+  },
+  errorText: {
+    color: '#c62828',
+    fontSize: 14,
+    flex: 1,
+    fontWeight: '500',
+  },
+  scrollView: {
+    flex: 1,
+  },
+  loadingContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 50,
+  },
+  loadingText: {
+    marginTop: 10,
+    fontSize: 16,
+    color: '#666',
+  },
+  statsContainer: {
+    backgroundColor: '#e3f2fd',
+    padding: 15,
+    borderRadius: 8,
+    marginBottom: 20,
+    borderLeftWidth: 4,
+    borderLeftColor: '#2196f3',
+  },
+  statsTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#1976d2',
+    marginBottom: 8,
+  },
+  statsText: {
+    fontSize: 14,
+    color: '#1565c0',
+    marginBottom: 2,
+  },
+  solicitudCard: {
+    backgroundColor: '#fff',
+    padding: 15,
+    borderRadius: 8,
+    marginBottom: 12,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+  },
+  solicitudHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 10,
   },
-  tipoContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  tipoIcon: {
-    fontSize: 18,
-    marginRight: 8,
-  },
-  tipoText: {
-    fontSize: 14,
-    fontWeight: '600',
+  solicitudId: {
+    fontSize: 16,
+    fontWeight: 'bold',
     color: '#333',
-    textTransform: 'capitalize',
   },
   estadoBadge: {
     paddingHorizontal: 8,
@@ -210,36 +315,50 @@ const styles = StyleSheet.create({
   estadoText: {
     color: '#fff',
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: 'bold',
   },
-  descripcion: {
-    fontSize: 16,
-    color: '#333',
-    marginBottom: 8,
-    lineHeight: 22,
-  },
-  fecha: {
+  solicitudDescripcion: {
     fontSize: 14,
+    color: '#555',
+    lineHeight: 20,
+    marginBottom: 12,
+  },
+  solicitudFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: '#f0f0f0',
+  },
+  solicitudInfo: {
+    fontSize: 12,
     color: '#666',
+    flex: 1,
   },
   emptyState: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 50,
+    paddingVertical: 60,
     paddingHorizontal: 20,
   },
   emptyTitle: {
     fontSize: 20,
     fontWeight: 'bold',
     color: '#333',
-    marginBottom: 15,
-    textAlign: 'center',
+    marginBottom: 10,
   },
   emptyText: {
     fontSize: 16,
     color: '#666',
     textAlign: 'center',
+    marginBottom: 8,
     lineHeight: 22,
+  },
+  emptySubtext: {
+    fontSize: 14,
+    color: '#999',
+    textAlign: 'center',
+    lineHeight: 20,
   },
 });
 
