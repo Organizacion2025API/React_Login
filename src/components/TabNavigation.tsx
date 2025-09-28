@@ -72,7 +72,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   activeTab: {
-    backgroundColor: '#007bff',
+    backgroundColor: '#8db986',
   },
   tabText: {
     fontSize: 14,

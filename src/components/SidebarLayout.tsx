@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  TouchableOpacity, 
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
   StatusBar,
   ScrollView,
   Animated,
@@ -76,16 +76,16 @@ const SidebarLayout: React.FC<SidebarLayoutProps> = ({
 
   return (
     <View style={styles.container}>
-      <StatusBar backgroundColor="#007bff" barStyle="light-content" />
-      
+      <StatusBar backgroundColor="#8db986" barStyle="light-content" />
+
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={openSidebar} style={styles.menuButton}>
           <Text style={styles.menuIcon}>☰</Text>
         </TouchableOpacity>
-        
+
         <Text style={styles.headerTitle}>{title}</Text>
-        
+
         {showBackButton ? (
           <TouchableOpacity onPress={onBackPress} style={styles.backButton}>
             <Text style={styles.backText}>← Volver</Text>
@@ -95,13 +95,8 @@ const SidebarLayout: React.FC<SidebarLayoutProps> = ({
         )}
       </View>
 
-      {/* Bienvenida */}
-      {user && (
-        <View style={styles.welcomeSection}>
-          <Text style={styles.welcomeText}>¡Bienvenido {user.name}!</Text>
-          <Text style={styles.roleText}>{user.role}</Text>
-        </View>
-      )}
+      <View style={styles.welcomeSection}>
+      </View>
 
       {/* Contenido */}
       <Content {...contentProps}>
@@ -117,7 +112,7 @@ const SidebarLayout: React.FC<SidebarLayoutProps> = ({
       >
         <View style={styles.modalOverlay}>
           {/* Sidebar */}
-          <Animated.View 
+          <Animated.View
             style={[
               styles.sidebar,
               {
@@ -138,7 +133,7 @@ const SidebarLayout: React.FC<SidebarLayoutProps> = ({
                   <Text style={styles.userRole}>{user?.role || 'Empleado'}</Text>
                 </View>
               </View>
-              
+
               <TouchableOpacity onPress={closeSidebar} style={styles.closeButton}>
                 <Text style={styles.closeText}>×</Text>
               </TouchableOpacity>
@@ -147,7 +142,7 @@ const SidebarLayout: React.FC<SidebarLayoutProps> = ({
             {/* Menu Items */}
             <ScrollView style={styles.menuContainer}>
               <Text style={styles.sectionTitle}>Navegación</Text>
-              
+
               {menuItems.map((item) => (
                 <TouchableOpacity
                   key={item.id}
@@ -183,9 +178,9 @@ const SidebarLayout: React.FC<SidebarLayoutProps> = ({
               </View>
             )}
           </Animated.View>
-          
+
           {/* Overlay táctil para cerrar */}
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.overlayTouchable}
             activeOpacity={1}
             onPress={closeSidebar}
@@ -202,7 +197,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#f5f5f5',
   },
   header: {
-    backgroundColor: '#007bff',
+    backgroundColor: '#8db986',
     paddingTop: 40,
     paddingBottom: 15,
     paddingHorizontal: 20,
@@ -242,7 +237,7 @@ const styles = StyleSheet.create({
   },
   welcomeSection: {
     backgroundColor: '#fff',
-    padding: 15,
+    padding: 0,
     marginBottom: 10,
     alignItems: 'center',
   },
@@ -264,7 +259,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingBottom: 20,
   },
-  
+
   // Sidebar Styles
   modalOverlay: {
     flex: 1,
@@ -284,7 +279,7 @@ const styles = StyleSheet.create({
     shadowRadius: 5,
   },
   sidebarHeader: {
-    backgroundColor: '#007bff',
+    backgroundColor: '#8db986',
     paddingTop: 40,
     paddingBottom: 20,
     paddingHorizontal: 20,
@@ -340,7 +335,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#999',
+    color: '#000',
     textTransform: 'uppercase',
     marginBottom: 10,
     marginTop: 10,
@@ -368,7 +363,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   activeMenuItemText: {
-    color: '#007bff',
+    color: '#000',
     fontWeight: '600',
   },
   activeIndicator: {
@@ -378,7 +373,7 @@ const styles = StyleSheet.create({
     marginTop: -10,
     width: 3,
     height: 20,
-    backgroundColor: '#007bff',
+    backgroundColor: '#8db986',
     borderRadius: 2,
   },
   separator: {

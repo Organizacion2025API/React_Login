@@ -271,7 +271,7 @@ const styles = StyleSheet.create({
   equipoCard: {
     backgroundColor: '#fff',
     padding: 15,
-    marginBottom: 10,
+    marginBottom: 14,
     borderRadius: 8,
     elevation: 2,
     // Agregamos efecto visual para indicar que es clickeable

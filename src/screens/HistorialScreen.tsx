@@ -201,7 +201,7 @@ const HistorialScreen: React.FC<HistorialScreenProps> = ({ onBack }) => {
         >
           {loading && solicitudes.length === 0 ? (
             <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color="#007bff" />
+              <ActivityIndicator size="large" color="#8db986" />
               <Text style={styles.loadingText}>Cargando historial...</Text>
             </View>
           ) : solicitudes.length > 0 ? (
@@ -323,7 +323,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#f5f5f5',
   },
   header: {
-    backgroundColor: '#007bff',
+    backgroundColor: '#8db986',
     paddingTop: 40,
     paddingBottom: 15,
     paddingHorizontal: 20,
@@ -387,7 +387,7 @@ const styles = StyleSheet.create({
   },
   userRole: {
     fontSize: 14,
-    color: '#007bff',
+    color: '#8db986',
     marginTop: 2,
   },
   errorContainer: {
@@ -429,17 +429,17 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     marginBottom: 20,
     borderLeftWidth: 4,
-    borderLeftColor: '#2196f3',
+    borderLeftColor: '#8db986',
   },
   statsTitle: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#1976d2',
+    color: '#8db986',
     marginBottom: 8,
   },
   statsText: {
     fontSize: 14,
-    color: '#1565c0',
+    color: '#8db986',
     marginBottom: 2,
   },
   solicitudCard: {
@@ -527,7 +527,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     borderLeftWidth: 3,
-    borderLeftColor: '#007bff',
+    borderLeftColor: '#8db986',
   },
   paginationText: {
     fontSize: 12,
@@ -549,7 +549,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   loadMoreText: {
-    color: '#007bff',
+    color: '#8db986',
     fontSize: 14,
     fontWeight: '600',
   },
@@ -565,7 +565,7 @@ const styles = StyleSheet.create({
     gap: 5,
   },
   pageButton: {
-    backgroundColor: '#007bff',
+    backgroundColor: '#8db986',
     paddingHorizontal: 8,
     paddingVertical: 6,
     borderRadius: 6,

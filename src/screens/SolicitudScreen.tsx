@@ -217,7 +217,7 @@ const styles = StyleSheet.create({
         backgroundColor: '#f5f5f5',
     },
     header: {
-        backgroundColor: '#007bff',
+        backgroundColor: '#8db986',
         paddingTop: 40,
         paddingBottom: 15,
         paddingHorizontal: 20,
@@ -271,7 +271,7 @@ const styles = StyleSheet.create({
     },
     userRole: {
         fontSize: 14,
-        color: '#007bff',
+        color: '#8db986',
         marginTop: 2,
     },
     errorContainer: {

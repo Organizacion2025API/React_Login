@@ -33,7 +33,7 @@ const Layout: React.FC<LayoutProps> = ({
 
   return (
     <View style={styles.container}>
-      <StatusBar backgroundColor="#007bff" barStyle="light-content" />
+      <StatusBar backgroundColor="#8db986" barStyle="light-content" />
       
       {/* Header */}
       <View style={styles.header}>
@@ -56,13 +56,6 @@ const Layout: React.FC<LayoutProps> = ({
         )}
       </View>
 
-      {/* Bienvenida */}
-      {user && (
-        <View style={styles.welcomeSection}>
-          <Text style={styles.welcomeText}>¡Bienvenido {user.name}!</Text>
-        </View>
-      )}
-
       {/* Contenido */}
       <Content {...contentProps}>
         {children}
@@ -77,7 +70,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#f5f5f5',
   },
   header: {
-    backgroundColor: '#007bff',
+    backgroundColor: '#8db986',
     paddingTop: 40,
     paddingBottom: 15,
     paddingHorizontal: 20,
