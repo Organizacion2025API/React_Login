@@ -9,11 +9,11 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { useAuth } from '../context/AuthContext';
-import SolicitudService, { 
-  SolicitudService as SolicitudServiceClass, 
+import SolicitudService, {
+  SolicitudService as SolicitudServiceClass,
   SolicitudResponse,
   PaginatedResponse,
-  PaginacionParams 
+  PaginacionParams
 } from '../services/SolicitudService';
 
 interface HistorialScreenProps {
@@ -26,7 +26,7 @@ const HistorialScreen: React.FC<HistorialScreenProps> = ({ onBack }) => {
   const [loading, setLoading] = useState<boolean>(false);
   const [loadingMore, setLoadingMore] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
-  
+
   // Estados de paginación
   const [currentPage, setCurrentPage] = useState<number>(0);
   const [totalPages, setTotalPages] = useState<number>(0);
@@ -46,7 +46,7 @@ const HistorialScreen: React.FC<HistorialScreenProps> = ({ onBack }) => {
       setSolicitudes([]);
     }
     setError('');
-    
+
     try {
       const params: PaginacionParams = {
         page,
@@ -56,21 +56,21 @@ const HistorialScreen: React.FC<HistorialScreenProps> = ({ onBack }) => {
       };
 
       const response = await SolicitudService.obtenerSolicitudesPropias(params);
-      
+
       if (response.success && response.data) {
         const paginatedData = response.data;
-        
+
         if (append) {
           setSolicitudes(prevSolicitudes => [...prevSolicitudes, ...paginatedData.content]);
         } else {
           setSolicitudes(paginatedData.content);
         }
-        
+
         setCurrentPage(paginatedData.number);
         setTotalPages(paginatedData.totalPages);
         setTotalElements(paginatedData.totalElements);
         setHasMore(!paginatedData.last);
-        
+
         console.log('✅ HistorialScreen - Solicitudes cargadas:', {
           page: paginatedData.number,
           totalPages: paginatedData.totalPages,
@@ -134,11 +134,11 @@ const HistorialScreen: React.FC<HistorialScreenProps> = ({ onBack }) => {
             <Text style={styles.estadoText}>{estadoNombre}</Text>
           </View>
         </View>
-        
+
         <Text style={styles.solicitudDescripcion} numberOfLines={3}>
           {solicitud.descripcion}
         </Text>
-        
+
         <View style={styles.solicitudFooter}>
           <Text style={styles.solicitudInfo}>
             📅 {formatearFecha(solicitud.fechaRegistro || solicitud.fechaCreacion || '')}
@@ -167,12 +167,6 @@ const HistorialScreen: React.FC<HistorialScreenProps> = ({ onBack }) => {
       </View>
 
       <View style={styles.content}>
-        <View style={styles.userInfo}>
-          <Text style={styles.userInfoTitle}>Historial de solicitudes de:</Text>
-          <Text style={styles.userName}>{user?.name || 'Usuario'}</Text>
-          <Text style={styles.userRole}>{user?.role || 'Empleado'}</Text>
-        </View>
-
         {error && (
           <View style={styles.errorContainer}>
             <Text style={styles.errorIcon}>⚠️</Text>
@@ -226,13 +220,13 @@ const HistorialScreen: React.FC<HistorialScreenProps> = ({ onBack }) => {
                   </Text>
                 )}
               </View>
-              
+
               {solicitudes.map(renderSolicitud)}
-              
+
               {/* Botón para cargar más */}
               {hasMore && (
                 <View style={styles.loadMoreContainer}>
-                  <TouchableOpacity 
+                  <TouchableOpacity
                     style={styles.loadMoreButton}
                     onPress={cargarMasSolicitudes}
                     disabled={loadingMore}
@@ -261,11 +255,11 @@ const HistorialScreen: React.FC<HistorialScreenProps> = ({ onBack }) => {
             </View>
           )}
         </ScrollView>
-        
+
         {/* Controles de paginación */}
         {totalPages > 1 && (
           <View style={styles.paginationControls}>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={[styles.pageButton, currentPage === 0 && styles.pageButtonDisabled]}
               onPress={() => irAPagina(0)}
               disabled={currentPage === 0}
@@ -274,8 +268,8 @@ const HistorialScreen: React.FC<HistorialScreenProps> = ({ onBack }) => {
                 ⏮️ Primera
               </Text>
             </TouchableOpacity>
-            
-            <TouchableOpacity 
+
+            <TouchableOpacity
               style={[styles.pageButton, currentPage === 0 && styles.pageButtonDisabled]}
               onPress={() => irAPagina(currentPage - 1)}
               disabled={currentPage === 0}
@@ -284,14 +278,14 @@ const HistorialScreen: React.FC<HistorialScreenProps> = ({ onBack }) => {
                 ⬅️ Anterior
               </Text>
             </TouchableOpacity>
-            
+
             <View style={styles.pageIndicator}>
               <Text style={styles.pageIndicatorText}>
                 {currentPage + 1} / {totalPages}
               </Text>
             </View>
-            
-            <TouchableOpacity 
+
+            <TouchableOpacity
               style={[styles.pageButton, currentPage >= totalPages - 1 && styles.pageButtonDisabled]}
               onPress={() => irAPagina(currentPage + 1)}
               disabled={currentPage >= totalPages - 1}
@@ -300,8 +294,8 @@ const HistorialScreen: React.FC<HistorialScreenProps> = ({ onBack }) => {
                 Siguiente ➡️
               </Text>
             </TouchableOpacity>
-            
-            <TouchableOpacity 
+
+            <TouchableOpacity
               style={[styles.pageButton, currentPage >= totalPages - 1 && styles.pageButtonDisabled]}
               onPress={() => irAPagina(totalPages - 1)}
               disabled={currentPage >= totalPages - 1}

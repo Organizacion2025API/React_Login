@@ -62,7 +62,7 @@ const SolicitudScreen: React.FC<SolicitudScreenProps> = ({ onBack, equipoPresele
 
     const handleEnviarSolicitud = async () => {
         if (!validarFormulario()) {
-             return;
+            return;
         }
 
         setLoading(true);
@@ -123,11 +123,21 @@ const SolicitudScreen: React.FC<SolicitudScreenProps> = ({ onBack, equipoPresele
             </View>
 
             <View style={styles.content}>
-                <View style={styles.userInfo}>
-                    <Text style={styles.userInfoTitle}>Solicitud de:</Text>
-                    <Text style={styles.userName}>{user?.name || 'Usuario'}</Text>
-                    <Text style={styles.userRole}>{user?.role || 'Empleado'}</Text>
+
+                {/* Información adicional */}
+                <View style={styles.infoBox}>
+                    <Text style={styles.infoTitle}>📋 Información</Text>
+                    <Text style={styles.infoText}>
+                        • Describe el problema con el mayor detalle posible
+                    </Text>
+                    <Text style={styles.infoText}>
+                        • Incluye síntomas, errores o comportamientos anómalos
+                    </Text>
+                    <Text style={styles.infoText}>
+                        • Tu solicitud será revisada por el equipo técnico
+                    </Text>
                 </View>
+
 
                 {/* Información del equipo pre-seleccionado */}
                 {equipoPreseleccionado && (
@@ -173,20 +183,6 @@ const SolicitudScreen: React.FC<SolicitudScreenProps> = ({ onBack, equipoPresele
                     />
                     <Text style={styles.charCount}>
                         {descripcion.length}/500 caracteres
-                    </Text>
-                </View>
-
-                {/* Información adicional */}
-                <View style={styles.infoBox}>
-                    <Text style={styles.infoTitle}>📋 Información</Text>
-                    <Text style={styles.infoText}>
-                        • Describe el problema con el mayor detalle posible
-                    </Text>
-                    <Text style={styles.infoText}>
-                        • Incluye síntomas, errores o comportamientos anómalos
-                    </Text>
-                    <Text style={styles.infoText}>
-                        • Tu solicitud será revisada por el equipo técnico
                     </Text>
                 </View>
 
