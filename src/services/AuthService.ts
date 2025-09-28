@@ -332,42 +332,6 @@ class AuthService {
       default: return 'General';
     }
   }
-
-  private getUserMappingByUsername(username: string): User | null {
-    // Mapeo manual basado en los datos conocidos de la API
-    const knownUsers: { [key: string]: User } = {
-      'admin': {
-        id: 1,
-        name: 'Admin Guillermo',
-        role: 'Administrador',
-        email: 'admin@empresa.com',
-        department: 'Administración'
-      },
-      'joeladmin': {
-        id: 6,
-        name: 'Joel Gonza',
-        role: 'Técnico',
-        email: 'jefflou@gmail.com',
-        department: 'Tecnología'
-      },
-      'joel23': {
-        id: 10,
-        name: 'Juan Carlos',
-        role: 'Empleado',
-        email: 'jeff@gmail.com',
-        department: 'Operaciones'
-      }
-    };
-
-    const user = knownUsers[username];
-    if (user) {
-      console.log(`✅ AuthService - Usuario ${username} encontrado en mapeo manual:`, user);
-      return user;
-    }
-    
-    console.log(`❌ AuthService - Usuario ${username} no encontrado en mapeo manual`);
-    return null;
-  }
 }
 
 export default new AuthService();
